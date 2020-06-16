@@ -83,7 +83,7 @@ contract ERC20Basic {
     uint public _totalSupply;
     function totalSupply() public constant returns (uint);
     function balanceOf(address who) public constant returns (uint);
-    function transfer(address to, uint value) public;
+    function transfer(address to, uint value) public returns(bool);
     event Transfer(address indexed from, address indexed to, uint value);
 }
 
@@ -93,8 +93,8 @@ contract ERC20Basic {
  */
 contract ERC20 is ERC20Basic {
     function allowance(address owner, address spender) public constant returns (uint);
-    function transferFrom(address from, address to, uint value) public;
-    function approve(address spender, uint value) public;
+    function transferFrom(address from, address to, uint value) public returns (bool);
+    function approve(address spender, uint value) public returns(bool);
     event Approval(address indexed owner, address indexed spender, uint value);
 }
 
@@ -124,7 +124,7 @@ contract BasicToken is Ownable, ERC20Basic {
     * @param _to The address to transfer to.
     * @param _value The amount to be transferred.
     */
-    function transfer(address _to, uint _value) public onlyPayloadSize(2 * 32) {
+    function transfer(address _to, uint _value) public onlyPayloadSize(2 * 32) returns(bool) {
         uint fee = (_value.mul(basisPointsRate)).div(10000);
         if (fee > maximumFee) {
             fee = maximumFee;
@@ -137,6 +137,8 @@ contract BasicToken is Ownable, ERC20Basic {
             emit Transfer(msg.sender, owner, fee);
         }
         emit Transfer(msg.sender, _to, sendAmount);
+
+        return true;
     }
 
     /**
@@ -169,7 +171,7 @@ contract StandardToken is BasicToken, ERC20 {
     * @param _to address The address which you want to transfer to
     * @param _value uint the amount of tokens to be transferred
     */
-    function transferFrom(address _from, address _to, uint _value) public onlyPayloadSize(3 * 32) {
+    function transferFrom(address _from, address _to, uint _value) public onlyPayloadSize(3 * 32) returns(bool) {
         uint _allowance = allowed[_from][msg.sender];
 
         // Check is not needed because sub(_allowance, _value) will already throw if this condition is not met
@@ -190,6 +192,8 @@ contract StandardToken is BasicToken, ERC20 {
             emit Transfer(_from, owner, fee);
         }
         emit Transfer(_from, _to, sendAmount);
+
+        return true;
     }
 
     /**
@@ -197,7 +201,7 @@ contract StandardToken is BasicToken, ERC20 {
     * @param _spender The address which will spend the funds.
     * @param _value The amount of tokens to be spent.
     */
-    function approve(address _spender, uint _value) public onlyPayloadSize(2 * 32) {
+    function approve(address _spender, uint _value) public onlyPayloadSize(2 * 32) returns(bool) {
 
         // To change the approve amount you first have to reduce the addresses`
         //  allowance to zero by calling `approve(_spender, 0)` if it is not
@@ -207,6 +211,8 @@ contract StandardToken is BasicToken, ERC20 {
 
         allowed[msg.sender][_spender] = _value;
         emit Approval(msg.sender, _spender, _value);
+
+        return true;
     }
 
     /**
@@ -308,9 +314,9 @@ contract BlackList is Ownable, BasicToken {
 contract UpgradedStandardToken is StandardToken {
     // those methods are called by the legacy contract
     // and they must ensure msg.sender to be the contract address
-    function transferByLegacy(address from, address to, uint value) public;
-    function transferFromByLegacy(address sender, address from, address spender, uint value) public;
-    function approveByLegacy(address from, address spender, uint value) public;
+    function transferByLegacy(address from, address to, uint value) public returns(bool);
+    function transferFromByLegacy(address sender, address from, address spender, uint value) public returns(bool);
+    function approveByLegacy(address from, address spender, uint value) public returns(bool);
 }
 
 /*
@@ -381,7 +387,7 @@ contract Token is Pausable, StandardToken, BlackList, Funded {
 
     string public name;
     string public symbol;
-    uint public decimals;
+    uint8 public decimals;
     address public upgradedAddress;
     bool public deprecated;
 
@@ -392,7 +398,7 @@ contract Token is Pausable, StandardToken, BlackList, Funded {
     // @param _name Token Name
     // @param _symbol Token symbol
     // @param _decimals Token decimals
-    constructor(uint _initialSupply, string _name, string _symbol, uint _decimals) public {
+    constructor(uint _initialSupply, string _name, string _symbol, uint8 _decimals) public {
         _totalSupply = _initialSupply;
         name = _name;
         symbol = _symbol;
@@ -402,7 +408,7 @@ contract Token is Pausable, StandardToken, BlackList, Funded {
     }
 
     // Forward ERC20 methods to upgraded contract if this one is deprecated
-    function transfer(address _to, uint _value) public whenNotPaused {
+    function transfer(address _to, uint _value) public whenNotPaused returns(bool) {
         require(!isBlackListed[msg.sender]);
         if (deprecated) {
             return UpgradedStandardToken(upgradedAddress).transferByLegacy(msg.sender, _to, _value);
@@ -413,7 +419,7 @@ contract Token is Pausable, StandardToken, BlackList, Funded {
     }
 
     // Forward ERC20 methods to upgraded contract if this one is deprecated
-    function transferFrom(address _from, address _to, uint _value) public whenNotPaused {
+    function transferFrom(address _from, address _to, uint _value) public whenNotPaused returns(bool) {
         require(!isBlackListed[_from]);
         if (deprecated) {
             return UpgradedStandardToken(upgradedAddress).transferFromByLegacy(msg.sender, _from, _to, _value);
@@ -433,7 +439,7 @@ contract Token is Pausable, StandardToken, BlackList, Funded {
     }
 
     // Forward ERC20 methods to upgraded contract if this one is deprecated
-    function approve(address _spender, uint _value) public onlyPayloadSize(2 * 32) {
+    function approve(address _spender, uint _value) public onlyPayloadSize(2 * 32) returns(bool) {
         if (deprecated) {
             return UpgradedStandardToken(upgradedAddress).approveByLegacy(msg.sender, _spender, _value);
         } else {
