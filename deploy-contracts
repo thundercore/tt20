@@ -1,0 +1,154 @@
+#!/usr/bin/env node
+
+// module imports
+const child_process = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+const JSON5 = require('json5');
+const program = require('commander');
+const Web3 = require('web3');
+
+const viewblock = require('./viewblock');
+const flattenContracts = require('./flattenContracts');
+const truffleConfig = require('./truffle-config');
+
+const BN = Web3.utils.BN;
+
+// command line parsing
+program.usage('[options]')
+       .option('--reset', 'call "truffle migrate --reset"')
+       .option('--dry-run', 'do not actually call "truffle migrate"')
+       .option('--network [network]', 'use the named network specified in `truffle-config.js`')
+       .option('--verbose-rpc', 'pass --verbose-rpc to "truffle migrate"')
+       .parse(process.argv);
+
+// call "truffle migrate"
+const truffleMigrateArgs = [ 'migrate' ];
+if (program.reset) {
+  truffleMigrateArgs.push('--reset');
+}
+if (program.network) {
+  truffleMigrateArgs.push(...['--network', program.network]);
+}
+if (program.verboseRpc) {
+  truffleMigrateArgs.push('verbose-rpc');
+}
+console.log('Command:', [ 'truffle' ].concat(truffleMigrateArgs));
+if (!program.dryRun) {
+  // will throw an Error on non-zero subprocess exit
+  child_process.execFileSync('truffle', truffleMigrateArgs, { stdio: 'inherit' });
+}
+
+function readDir(dirPath) {
+  return new Promise((resolve, reject) => {
+    fs.readdir(dirPath, function(err, dirContents) {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(dirContents);
+    });
+  });
+}
+
+// call "truffle run save-per-network-deployment-record"
+const cmdArgs = [ 'run', 'save-per-network-deployment-record' ];
+if (program.network) {
+  cmdArgs.push(...['--network', program.network]);
+}
+console.log('Command:', [ 'truffle' ].concat(cmdArgs));
+if (!program.dryRun) {
+  child_process.execFileSync('truffle', cmdArgs, { stdio: 'inherit' });
+}
+
+(async function() {
+  if (viewblock.supportedNetworkName(program.network)) {
+    // read config files
+    let localConfStr;
+    try {
+      localConfStr = fs.readFileSync('local.jsonc', { encoding: 'utf8' });
+    } catch (err) {
+      console.error('please create a "local.jsonc" file with a "viewblockApiKey" key');
+      return;
+    }
+    const localConf = JSON5.parse(localConfStr);
+
+    // concat Solidity sources and their transitive dependencies in `flattened/`
+    await flattenContracts.flatten();
+    const dirPath = 'flattened';
+    const dirContents = await readDir(dirPath);
+    for (let i = 0; i < dirContents.length; i++) {
+      const n = dirContents[i];
+      const p = path.join(dirPath, n);
+      const sourceCode = fs.readFileSync(p, {encoding: 'utf-8'});
+      if (sourceCode === undefined || sourceCode === null || sourceCode.length === 0) {
+        console.error('failed to read contract source code');
+        return;
+      }
+      const contractName = path.basename(n, '.sol');
+      const contractDataStr = fs.readFileSync(path.join('build', 'contracts', contractName + '.json'));
+      const contractData = JSON5.parse(contractDataStr);
+      const solcParams = truffleConfig['compilers']['solc'];
+      // FIXME: easily access the eth provider for both truffleConfig[network].provider and truffleConfig[network].{host,port}
+      const networkId = truffleConfig['networks'][program.network]['network_id'];
+      try {
+        if (contractData['networks'][networkId] === undefined) {
+          console.error(`contract "${contractName}" not deployed on network ${networkId}, skipping.`);
+          continue;
+        }
+        await viewblock.verifyContract(localConf.viewblockApiKey,
+          'thundercore' /* chain */,
+          sourceCode /* code */,
+          contractData['networks'][networkId]['address'] /* address */,
+          contractName /* name */,
+          viewblock.solcVersionMap(solcParams['version']) /* solcVersion */,
+          solcParams['settings']['optimizer']['enabled']  /* optimized */,
+          solcParams['settings']['optimizer']['runs']     /* runs */,
+          solcParams['settings']['evmVersion']            /* evmVersion */,
+          null /* libraries */,
+        );
+      } catch(error) {
+        console.error('viewblock.verifyContract failed:', error);
+      }
+    }
+  }
+})();
+
+const transfer = async(to, amount) => {
+  const t = new BN(amount);
+  const cmdArgs = [];
+  if (program.network) {
+    cmdArgs.push(...['--network', program.network]);
+  }
+  cmdArgs.push(...[ 'exec', 'transfer.js', to, t.toString() ]);
+  console.log('Command:', [ 'truffle' ].concat(cmdArgs));
+  if (!program.dryRun) {
+    child_process.execFileSync('truffle', cmdArgs, { stdio: 'inherit' });
+  }
+};
+
+const issueToken = async(to, amount) => {
+  const t = new BN(amount);
+  const cmdArgs = [];
+  if (program.network) {
+    cmdArgs.push(...['--network', program.network]);
+  }
+  cmdArgs.push(...[ 'exec', 'issue.js', to, t.toString() ]);
+  console.log('Command:', [ 'truffle' ].concat(cmdArgs));
+  //if (!program.dryRun) {
+    child_process.execFileSync('truffle', cmdArgs, { stdio: 'inherit' });
+  //}
+};
+
+(async () => {
+  const contractDataStr = fs.readFileSync(path.join('build', 'contracts', 'Token.json'));
+  const contractData = JSON5.parse(contractDataStr);
+  // FIXME: easily access the eth provider for both truffleConfig[network].provider and truffleConfig[network].{host,port}
+  const networkId = truffleConfig['networks'][program.network]['network_id'];
+  const tokenAddress = contractData['networks'][networkId]['address']
+  // transfer 1000 into token contract instance
+  await transfer(tokenAddress , 1000);
+  // NOTE:
+  //await issueToken('ADDRESS', (new BN(AMOUNT*1000*1000)));
+})();

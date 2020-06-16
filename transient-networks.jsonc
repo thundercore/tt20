@@ -1,0 +1,21 @@
+// This file lists the `network_id`s of transient networks so that contracts deployed
+// on them are not tracked via version control.
+
+{   // A "network" here refers to a block chain instance.
+    // A "transient network" is a chain that could wipe its data without warning.
+    // `network_id` is the string returned by the `net_version` RPC call.
+    // https://github.com/ethereum/wiki/wiki/JSON-RPC#net_version
+    //
+    // curl -H 'Content-Type: application/json'
+    //      -X POST
+    //      --data '{"jsonrpc":"2.0","method":"net_version","params":[],"id":1}'
+    // https://mainnet-rpc.thundercore.com | https://testnet-rpc.thundercore.com
+
+    "truffle-development": { "network_id": "5777" }, // truffle develop / ganache default
+    "testrpc": { "network_id": "4447" },         // `truffle migrate --reset` seems to occasionally deploy to this network_id even when using `truffle develop`
+    "localchain": { "network_id": "19" },        // thunder localchain
+    
+    "zero-x-devnet": { "network_id": "50" },       // docker run 0xorg/devnet
+
+    // Thunder testnet and staging has network_id 18, mainnet has 108.
+}

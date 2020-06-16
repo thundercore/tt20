@@ -1,0 +1,6 @@
+name: tt20
+channels:
+  - conda-forge
+dependencies:
+  - nodejs=10.16.3
+  - yarn=1.22.0
