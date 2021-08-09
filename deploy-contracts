@@ -52,6 +52,7 @@ function readDir(dirPath) {
   });
 }
 
+/*
 // call "truffle run save-per-network-deployment-record"
 const cmdArgs = [ 'run', 'save-per-network-deployment-record' ];
 if (program.network) {
@@ -98,15 +99,15 @@ if (!program.dryRun) {
           continue;
         }
         await viewblock.verifyContract(localConf.viewblockApiKey,
-          'thundercore' /* chain */,
-          sourceCode /* code */,
-          contractData['networks'][networkId]['address'] /* address */,
-          contractName /* name */,
-          viewblock.solcVersionMap(solcParams['version']) /* solcVersion */,
-          solcParams['settings']['optimizer']['enabled']  /* optimized */,
-          solcParams['settings']['optimizer']['runs']     /* runs */,
-          solcParams['settings']['evmVersion']            /* evmVersion */,
-          null /* libraries */,
+          'thundercore' // chain,
+          sourceCode // code ,
+          contractData['networks'][networkId]['address'] // address,
+          contractName // name,
+          viewblock.solcVersionMap(solcParams['version']) // solcVersion,
+          solcParams['settings']['optimizer']['enabled']  // optimized,
+          solcParams['settings']['optimizer']['runs']     // runs,
+          solcParams['settings']['evmVersion']            // evmVersion,
+          null // libraries,
         );
       } catch(error) {
         console.error('viewblock.verifyContract failed:', error);
@@ -152,3 +153,4 @@ const issueToken = async(to, amount) => {
   // NOTE:
   //await issueToken('ADDRESS', (new BN(AMOUNT*1000*1000)));
 })();
+*/

@@ -1,0 +1,6 @@
+{
+	"name": "SampleToken",
+	"symbol": "SPT",
+	"decimals": 8,
+	"initialSupply": 1.5e9
+}
