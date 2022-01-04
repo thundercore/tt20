@@ -1,0 +1,14 @@
+{
+  "name": "tt20",
+  "version": "1.0.0",
+  "description": "Writing smart contract on ThunderCore",
+  "repository": "https://github.com/thundercore/tt20/tree/truffle",
+  "author": "ThunderCore",
+  "license": "MIT",
+  "private": false,
+  "devDependencies": {
+    "@truffle/hdwallet-provider": "^2.0.0",
+    "dotenv": "^10.0.0",
+    "truffle": "^5.4.26"
+  }
+}
