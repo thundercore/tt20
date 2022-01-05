@@ -7,8 +7,18 @@
   "license": "MIT",
   "private": false,
   "devDependencies": {
+    "@openzeppelin/test-helpers": "^0.5.15",
     "@truffle/hdwallet-provider": "^2.0.0",
+    "chai": "^4.3.4",
     "dotenv": "^10.0.0",
     "truffle": "^5.4.26"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.4.1"
+  },
+  "scripts": {
+    "build": "truffle compile",
+    "deploy": "truffle migrate",
+    "test": "truffle test"
   }
 }
