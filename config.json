@@ -1,6 +1,6 @@
 {
-	"name": "SampleToken",
-	"symbol": "SPT",
+	"name": "Panda Token",
+	"symbol": "PDT",
 	"decimals": 8,
-	"initialSupply": 1.5e9
+	"initialSupply": 999999999
 }
