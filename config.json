@@ -1,6 +1,6 @@
 {
-	"name": "SampleToken",
-	"symbol": "SPT",
-	"decimals": 8,
-	"initialSupply": 1.5e9
+	"name": "my token",
+	"symbol": MT",
+	"decimals": 18,
+	"initialSupply": 100000
 }
